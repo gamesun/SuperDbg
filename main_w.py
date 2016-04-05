@@ -125,6 +125,12 @@ class EditDrop(QtGui.QLineEdit):
             #print url
             self.setText(url)        # assign first url to editline
 
+#class TabCtrl(QtGui.QWidget):
+#    def __init__(self, *args, **kwargs):
+#        super(TabCtrl, self).__init__(*args, **kwargs)
+#
+#    def 
+
 class MainWindow(QtGui.QWidget):
     def __init__(self, argv):
 
@@ -153,6 +159,8 @@ class MainWindow(QtGui.QWidget):
         self.setWindowIcon(QtGui.QIcon(pix16))
             
         # add widgets
+        
+
         qlbl_title = QtGui.QLabel(u"%s %s" % (appInfo.title, appInfo.version), self)
         qlbl_title.setGeometry(0,0,552,34)
         qlbl_title.setStyleSheet("QLabel{background-color:#30a7b8;"
@@ -167,115 +175,6 @@ class MainWindow(QtGui.QWidget):
         qlbl_ico.setGeometry(8,1,32,32)
         qlbl_ico.setPixmap(pix32)
         qlbl_ico.setStyleSheet("background-color:#30a7b8;")
-        
-        qlbl_0 = QtGui.QLabel(u"Mapping file", self)
-        qlbl_0.setGeometry(25,45,90,20)
-        qlbl_0.setStyleSheet("QLabel{border:none;color:#2f2f2f;font-size:13px;font-family:Microsoft YaHei;}")
-        
-        
-        qlbl_1 = QtGui.QLabel(u"Variable", self)
-        qlbl_1.setGeometry(25,110,60,20)
-        qlbl_1.setStyleSheet("QLabel{border:none;color:#2f2f2f;font-size:13px;font-family:Microsoft YaHei;}")
-                
-        qlbl_2 = QtGui.QLabel(u"Address", self)
-        qlbl_2.setGeometry(250,110,60,20)
-        qlbl_2.setStyleSheet("QLabel{border:none;color:#2f2f2f;font-size:13px;font-family:Microsoft YaHei;}")
-        
-        qlbl_3 = QtGui.QLabel(u"Bytes", self)
-        qlbl_3.setGeometry(370,110,60,20)
-        qlbl_3.setStyleSheet("QLabel{border:none;color:#2f2f2f;font-size:13px;font-family:Microsoft YaHei;}")
-        
-        qlbl_4 = QtGui.QLabel(u"Section", self)
-        qlbl_4.setGeometry(420,110,120,20)
-        qlbl_4.setStyleSheet("QLabel{border:none;color:#2f2f2f;font-size:13px;font-family:Microsoft YaHei;}")
-        
-        
-        #self.qedt_filepath = QtGui.QLineEdit(input_file_path, self)
-        self.qedt_filepath = EditDrop(input_file_path, self)
-        self.qedt_filepath.setGeometry(25,70,433,22)
-        self.qedt_filepath.setStyleSheet("QLineEdit{background-color:#e4e4e4;"
-                                                    "border:none;"
-                                                    "color:#2f2f2f;"
-                                                    "font-size:12px;"
-                                                    "font-family:Meiryo UI;}"
-                                        "QLineEdit:hover{background-color:#e4e4e4;}")
-        
-        self.qbtn_filebrowser=QtGui.QPushButton(u"...", self)
-        self.qbtn_filebrowser.setGeometry(458,70,22,22)
-        self.qbtn_filebrowser.setStyleSheet("QPushButton{background-color:#30a7b8;"
-                                                          "border:none;"
-                                                          "color:#ffffff;"
-                                                          "font-size:14px;"
-                                                          "font-family:Meiryo UI;}"
-                                            "QPushButton:hover{background-color:#51c0d1;}"
-                                            "QPushButton:pressed{background-color:#268392;}")
-        
-        self.qbtn_fileload=QtGui.QPushButton(u"Load", self)
-        self.qbtn_fileload.setGeometry(485,70,40,22)
-        self.qbtn_fileload.setStyleSheet("QPushButton{background-color:#30a7b8;"
-                                                          "border:none;"
-                                                          "color:#ffffff;"
-                                                          "font-size:13px;"
-                                                          "font-family:Georgia;}"
-                                            "QPushButton:hover{background-color:#51c0d1;}"
-                                            "QPushButton:pressed{background-color:#268392;}")
-        
-        
-        self.qedt_vari1 = QtGui.QLineEdit("", self)
-        self.qedt_vari1.setGeometry(25,135,210,22)
-        self.qedt_vari1.setStyleSheet("QLineEdit{background-color:#e4e4e4;border:none;color:#2f2f2f;font-size:12px;font-family:Meiryo UI;}QLineEdit:hover{background-color:#e4e4e4;}")
-        
-        self.qedt_vari2 = QtGui.QLineEdit("", self)
-        self.qedt_vari2.setGeometry(25,170,210,22)
-        self.qedt_vari2.setStyleSheet("QLineEdit{background-color:#e4e4e4;border:none;color:#2f2f2f;font-size:12px;font-family:Meiryo UI;}QLineEdit:hover{background-color:#e4e4e4;}")
-        
-        self.qedt_vari3 = QtGui.QLineEdit("", self)
-        self.qedt_vari3.setGeometry(25,205,210,22)
-        self.qedt_vari3.setStyleSheet("QLineEdit{background-color:#e4e4e4;border:none;color:#2f2f2f;font-size:12px;font-family:Meiryo UI;}QLineEdit:hover{background-color:#e4e4e4;}")
-        
-        
-        self.qedt_addr1 = QtGui.QLineEdit("", self)
-        self.qedt_addr1.setGeometry(250,135,85,22)
-        self.qedt_addr1.setStyleSheet("QLineEdit{background-color:#e4e4e4;border:none;color:#2f2f2f;font-size:12px;font-family:Meiryo UI;}QLineEdit:hover{background-color:#e4e4e4;}")
-        
-        self.qedt_addr2 = QtGui.QLineEdit("", self)
-        self.qedt_addr2.setGeometry(250,170,85,22)
-        self.qedt_addr2.setStyleSheet("QLineEdit{background-color:#e4e4e4;border:none;color:#2f2f2f;font-size:12px;font-family:Meiryo UI;}QLineEdit:hover{background-color:#e4e4e4;}")
-        
-        self.qedt_addr3 = QtGui.QLineEdit("", self)
-        self.qedt_addr3.setGeometry(250,205,85,22)
-        self.qedt_addr3.setStyleSheet("QLineEdit{background-color:#e4e4e4;border:none;color:#2f2f2f;font-size:12px;font-family:Meiryo UI;}QLineEdit:hover{background-color:#e4e4e4;}")
-        
-        
-        self.qedt_byte1 = QtGui.QLineEdit("", self)
-        self.qedt_byte1.setGeometry(370,135,37,22)
-        self.qedt_byte1.setAlignment(QtCore.Qt.AlignHCenter)
-        self.qedt_byte1.setStyleSheet("QLineEdit{background-color:#e4e4e4;border:none;color:#2f2f2f;font-size:12px;font-family:Meiryo UI;}QLineEdit:hover{background-color:#e4e4e4;}")
-        
-        self.qedt_byte2 = QtGui.QLineEdit("", self)
-        self.qedt_byte2.setGeometry(370,170,37,22)
-        self.qedt_byte2.setAlignment(QtCore.Qt.AlignHCenter)
-        self.qedt_byte2.setStyleSheet("QLineEdit{background-color:#e4e4e4;border:none;color:#2f2f2f;font-size:12px;font-family:Meiryo UI;}QLineEdit:hover{background-color:#e4e4e4;}")
-        
-        self.qedt_byte3 = QtGui.QLineEdit("", self)
-        self.qedt_byte3.setGeometry(370,205,37,22)
-        self.qedt_byte3.setAlignment(QtCore.Qt.AlignHCenter)
-        self.qedt_byte3.setStyleSheet("QLineEdit{background-color:#e4e4e4;border:none;color:#2f2f2f;font-size:12px;font-family:Meiryo UI;}QLineEdit:hover{background-color:#e4e4e4;}")
-        
-        
-        self.qedt_sect1 = QtGui.QLineEdit("", self)
-        self.qedt_sect1.setGeometry(420,135,105,22)
-        #self.qedt_sect1.setAlignment(QtCore.Qt.AlignRight)
-        self.qedt_sect1.setStyleSheet("QLineEdit{background-color:#e4e4e4;border:none;color:#2f2f2f;font-size:12px;font-family:Meiryo UI;}QLineEdit:hover{background-color:#e4e4e4;}")
-        
-        self.qedt_sect2 = QtGui.QLineEdit("", self)
-        self.qedt_sect2.setGeometry(420,170,105,22)
-        self.qedt_sect2.setStyleSheet("QLineEdit{background-color:#e4e4e4;border:none;color:#2f2f2f;font-size:12px;font-family:Meiryo UI;}QLineEdit:hover{background-color:#e4e4e4;}")
-        
-        self.qedt_sect3 = QtGui.QLineEdit("", self)
-        self.qedt_sect3.setGeometry(420,205,105,22)
-        self.qedt_sect3.setStyleSheet("QLineEdit{background-color:#e4e4e4;border:none;color:#2f2f2f;font-size:12px;font-family:Meiryo UI;}QLineEdit:hover{background-color:#e4e4e4;}")
-        
         
         self.qbtn_minimize=BtnMinimize(self)
         self.qbtn_minimize.setGeometry(476,0,28,24)
@@ -297,7 +196,140 @@ class MainWindow(QtGui.QWidget):
                                       "QPushButton:hover{background-color:#ea5e00;}"
                                       "QPushButton:pressed{background-color:#994005;}")
         
+        wdgt_page1=QtGui.QWidget(self)
         
+        qlbl_0 = QtGui.QLabel(u"Mapping file", wdgt_page1)
+        qlbl_0.setGeometry(25,45-34,90,20)
+        qlbl_0.setStyleSheet("QLabel{border:none;color:#2f2f2f;font-size:13px;font-family:Microsoft YaHei;}")
+        
+        
+        qlbl_1 = QtGui.QLabel(u"Variable", wdgt_page1)
+        qlbl_1.setGeometry(25,110-34,60,20)
+        qlbl_1.setStyleSheet("QLabel{border:none;color:#2f2f2f;font-size:13px;font-family:Microsoft YaHei;}")
+                
+        qlbl_2 = QtGui.QLabel(u"Address", wdgt_page1)
+        qlbl_2.setGeometry(250,110-34,60,20)
+        qlbl_2.setStyleSheet("QLabel{border:none;color:#2f2f2f;font-size:13px;font-family:Microsoft YaHei;}")
+        
+        qlbl_3 = QtGui.QLabel(u"Bytes", wdgt_page1)
+        qlbl_3.setGeometry(370,110-34,60,20)
+        qlbl_3.setStyleSheet("QLabel{border:none;color:#2f2f2f;font-size:13px;font-family:Microsoft YaHei;}")
+        
+        qlbl_4 = QtGui.QLabel(u"Section", wdgt_page1)
+        qlbl_4.setGeometry(420,110-34,120,20)
+        qlbl_4.setStyleSheet("QLabel{border:none;color:#2f2f2f;font-size:13px;font-family:Microsoft YaHei;}")
+        
+        
+        #self.qedt_filepath = QtGui.QLineEdit(input_file_path, self)
+        self.qedt_filepath = EditDrop(input_file_path, wdgt_page1)
+        self.qedt_filepath.setGeometry(25,70-34,433,22)
+        self.qedt_filepath.setStyleSheet("QLineEdit{background-color:#e4e4e4;"
+                                                    "border:none;"
+                                                    "color:#2f2f2f;"
+                                                    "font-size:12px;"
+                                                    "font-family:Meiryo UI;}"
+                                        "QLineEdit:hover{background-color:#e4e4e4;}")
+        
+        self.qbtn_filebrowser=QtGui.QPushButton(u"...", wdgt_page1)
+        self.qbtn_filebrowser.setGeometry(458,70-34,22,22)
+        self.qbtn_filebrowser.setStyleSheet("QPushButton{background-color:#30a7b8;"
+                                                          "border:none;"
+                                                          "color:#ffffff;"
+                                                          "font-size:14px;"
+                                                          "font-family:Meiryo UI;}"
+                                            "QPushButton:hover{background-color:#51c0d1;}"
+                                            "QPushButton:pressed{background-color:#268392;}")
+        
+        self.qbtn_fileload=QtGui.QPushButton(u"Load", wdgt_page1)
+        self.qbtn_fileload.setGeometry(485,70-34,40,22)
+        self.qbtn_fileload.setStyleSheet("QPushButton{background-color:#30a7b8;"
+                                                          "border:none;"
+                                                          "color:#ffffff;"
+                                                          "font-size:13px;"
+                                                          "font-family:Georgia;}"
+                                            "QPushButton:hover{background-color:#51c0d1;}"
+                                            "QPushButton:pressed{background-color:#268392;}")
+        
+        self.qedt_vari1 = QtGui.QLineEdit("", wdgt_page1)
+        self.qedt_vari1.setGeometry(25,135-34,210,22)
+        self.qedt_vari1.setStyleSheet("QLineEdit{background-color:#e4e4e4;border:none;color:#2f2f2f;font-size:12px;font-family:Meiryo UI;}QLineEdit:hover{background-color:#e4e4e4;}")
+        
+        self.qedt_vari2 = QtGui.QLineEdit("", wdgt_page1)
+        self.qedt_vari2.setGeometry(25,170-34,210,22)
+        self.qedt_vari2.setStyleSheet("QLineEdit{background-color:#e4e4e4;border:none;color:#2f2f2f;font-size:12px;font-family:Meiryo UI;}QLineEdit:hover{background-color:#e4e4e4;}")
+        
+        self.qedt_vari3 = QtGui.QLineEdit("", wdgt_page1)
+        self.qedt_vari3.setGeometry(25,205-34,210,22)
+        self.qedt_vari3.setStyleSheet("QLineEdit{background-color:#e4e4e4;border:none;color:#2f2f2f;font-size:12px;font-family:Meiryo UI;}QLineEdit:hover{background-color:#e4e4e4;}")
+        
+        
+        self.qedt_addr1 = QtGui.QLineEdit("", wdgt_page1)
+        self.qedt_addr1.setGeometry(250,135-34,85,22)
+        self.qedt_addr1.setStyleSheet("QLineEdit{background-color:#e4e4e4;border:none;color:#2f2f2f;font-size:12px;font-family:Meiryo UI;}QLineEdit:hover{background-color:#e4e4e4;}")
+        
+        self.qedt_addr2 = QtGui.QLineEdit("", wdgt_page1)
+        self.qedt_addr2.setGeometry(250,170-34,85,22)
+        self.qedt_addr2.setStyleSheet("QLineEdit{background-color:#e4e4e4;border:none;color:#2f2f2f;font-size:12px;font-family:Meiryo UI;}QLineEdit:hover{background-color:#e4e4e4;}")
+        
+        self.qedt_addr3 = QtGui.QLineEdit("", wdgt_page1)
+        self.qedt_addr3.setGeometry(250,205-34,85,22)
+        self.qedt_addr3.setStyleSheet("QLineEdit{background-color:#e4e4e4;border:none;color:#2f2f2f;font-size:12px;font-family:Meiryo UI;}QLineEdit:hover{background-color:#e4e4e4;}")
+        
+        
+        self.qedt_byte1 = QtGui.QLineEdit("", wdgt_page1)
+        self.qedt_byte1.setGeometry(370,135-34,37,22)
+        self.qedt_byte1.setAlignment(QtCore.Qt.AlignHCenter)
+        self.qedt_byte1.setStyleSheet("QLineEdit{background-color:#e4e4e4;border:none;color:#2f2f2f;font-size:12px;font-family:Meiryo UI;}QLineEdit:hover{background-color:#e4e4e4;}")
+        
+        self.qedt_byte2 = QtGui.QLineEdit("", wdgt_page1)
+        self.qedt_byte2.setGeometry(370,170-34,37,22)
+        self.qedt_byte2.setAlignment(QtCore.Qt.AlignHCenter)
+        self.qedt_byte2.setStyleSheet("QLineEdit{background-color:#e4e4e4;border:none;color:#2f2f2f;font-size:12px;font-family:Meiryo UI;}QLineEdit:hover{background-color:#e4e4e4;}")
+        
+        self.qedt_byte3 = QtGui.QLineEdit("", wdgt_page1)
+        self.qedt_byte3.setGeometry(370,205-34,37,22)
+        self.qedt_byte3.setAlignment(QtCore.Qt.AlignHCenter)
+        self.qedt_byte3.setStyleSheet("QLineEdit{background-color:#e4e4e4;border:none;color:#2f2f2f;font-size:12px;font-family:Meiryo UI;}QLineEdit:hover{background-color:#e4e4e4;}")
+        
+        
+        self.qedt_sect1 = QtGui.QLineEdit("", wdgt_page1)
+        self.qedt_sect1.setGeometry(420,135-34,105,22)
+        #self.qedt_sect1.setAlignment(QtCore.Qt.AlignRight)
+        self.qedt_sect1.setStyleSheet("QLineEdit{background-color:#e4e4e4;border:none;color:#2f2f2f;font-size:12px;font-family:Meiryo UI;}QLineEdit:hover{background-color:#e4e4e4;}")
+        
+        self.qedt_sect2 = QtGui.QLineEdit("", wdgt_page1)
+        self.qedt_sect2.setGeometry(420,170-34,105,22)
+        self.qedt_sect2.setStyleSheet("QLineEdit{background-color:#e4e4e4;border:none;color:#2f2f2f;font-size:12px;font-family:Meiryo UI;}QLineEdit:hover{background-color:#e4e4e4;}")
+        
+        self.qedt_sect3 = QtGui.QLineEdit("", wdgt_page1)
+        self.qedt_sect3.setGeometry(420,205-34,105,22)
+        self.qedt_sect3.setStyleSheet("QLineEdit{background-color:#e4e4e4;border:none;color:#2f2f2f;font-size:12px;font-family:Meiryo UI;}QLineEdit:hover{background-color:#e4e4e4;}")
+        
+        qtab_main=QtGui.QTabWidget(self)
+        qtab_main.setGeometry(0,34,552,210)
+        qtab_main.setStyleSheet("QTabWidget:pane{border:none;"
+                                                        #"color:#ffffff;"
+                                                        #"font-size:12px;"
+                                                        "}"
+                                        #"QTabWidget:tab-bar{;}"
+                                        "QTabBar:tab{border:none;"
+                                                    "font:bold;"
+                                                    "font-size:16px;"
+                                                    "font-family:Georgia;"
+                                                    "color:#ffffff;"
+                                                    "height:28px;width:184px;"
+                                                    "background-color:#30a7b8;}"
+                                        "QTabBar:tab:selected{background-color:#30a7b8;alignment:center;}"
+                                        "QTabBar:tab:!selected{background-color:#99d9ea;alignment:center;}"
+                                        )
+        
+        wdgt_page2=QtGui.QWidget(self)
+        wdgt_page3=QtGui.QWidget(self)
+
+        qtab_main.addTab(wdgt_page1, "Data Watch")
+        qtab_main.addTab(wdgt_page2, "Setting")
+        qtab_main.addTab(wdgt_page3, "About")
+
         # bind event
         self.qbtn_filebrowser.clicked.connect(self.btnClicked_filebrowser)
         self.qbtn_fileload.clicked.connect(self.btnClicked_fileload)
