@@ -175,7 +175,7 @@ class MainWindow(QtGui.QWidget):
         self.m_drag = False
         
 #        self.resize(552,245+34)
-        self.resize(1000,620)
+        self.resize(1000,680+34)
         self.setWindowFlags(Qt.FramelessWindowHint)
         self.setMouseTracking(True)
         #self.setStyleSheet("QWidget{background-color:#99d9ea;}")
@@ -202,7 +202,7 @@ class MainWindow(QtGui.QWidget):
         
         # add widgets
         qlbl_title = QtGui.QLabel(u"%s %s" % (appInfo.title, appInfo.version), self)
-        qlbl_title.setGeometry(0,0,552,34)
+        qlbl_title.setGeometry(0,0,1000,34)
         qlbl_title.setStyleSheet("QLabel{background-color:#30a7b8;"
                                         "border:none;"
                                         "color:#efefef;"
@@ -218,7 +218,7 @@ class MainWindow(QtGui.QWidget):
         qlbl_ico.setStyleSheet("background-color:#30a7b8;")
         
         self.qbtn_minimize=BtnMinimize(self)
-        self.qbtn_minimize.setGeometry(476,0,28,24)
+        self.qbtn_minimize.setGeometry(450+476,0,28,24)
         self.qbtn_minimize.setStyleSheet("QPushButton{background-color:#30a7b8;"
                                                       "border:none;"
 #                                                      "color:#000000;"
@@ -228,7 +228,7 @@ class MainWindow(QtGui.QWidget):
                                         "QPushButton:pressed{background-color:#14464e;}")
         
         self.qbtn_close=BtnClose(self)
-        self.qbtn_close.setGeometry(505,0,36,24)
+        self.qbtn_close.setGeometry(450+505,0,36,24)
         self.qbtn_close.setStyleSheet("QPushButton{background-color:#30a7b8;"
                                                   "border:none;"
 #                                                  "color:#ffffff;"
@@ -455,25 +455,32 @@ class MainWindow(QtGui.QWidget):
         scene=QtGui.QGraphicsScene()
         
         from bisect import bisect_left
+        ZOOMWAVE_OFFSET = 10
         class View(QtGui.QGraphicsView):
             def __init__(self, *args, **kwargs):
                 super(QtGui.QGraphicsView, self).__init__(*args, **kwargs)
                 self.setMouseTracking(True)
                 #self.setViewportMargins(5,5,5,5)
-                self.xScale = 1.0
-                        
+                #self.xScale = 1.0
+                
                 self.paintWaveform = []
-                self.zoomFactor = 0.002
+                self.paintZoomWaveform = []
+                self.mainScale = 0.002
+                self.zoomScale = 20
                 self.originWave = []
                 self.waveform = []
+                self.zoomWaveform = []
                 self.waveItems = []
-                self.arrow = None
+                self.zoomWaveItems = []
+                self.arrow = [0,0,0,0]
                 self.arrowItem = None
                 self.guideItem = None
                 self.guideRectItem = None
+
+                self.m_drag=False
             
             def Update(self):
-                self.TransformWave()
+                self.ScaleMainWave()
                 self.DrawWave()
                 if self.arrowItem is not None:
                     self.scene().removeItem(self.arrowItem)
@@ -485,8 +492,8 @@ class MainWindow(QtGui.QWidget):
                 if self.guideRectItem is not None:
                     self.scene().removeItem(self.guideRectItem)
                     self.guideRectItem = None
-
                 
+                #self.scene().addLine(-100, 0, 100, 100)
 
             def setWaveData(self, originWave):
                 self.originWave = originWave[:]
@@ -494,18 +501,79 @@ class MainWindow(QtGui.QWidget):
             def wheelEvent(self, evt):
                 if 0 < evt.delta():
                     #self.scale(2.0, 1.0)
-                    #print(self.transform().dx())
-                    self.zoomFactor = self.zoomFactor * 2
+                    self.mainScale = self.mainScale * 2
                 else:
                     #self.scale(0.5, 1.0)
-                    #print(self.transform().dx())
-                    self.zoomFactor = self.zoomFactor / 2
+                    self.mainScale = self.mainScale / 2
                 self.Update()
 
                 evt.accept()
 
-            def TransformWave(self):
-                self.waveform = [self.originWave[0]*self.zoomFactor,[[(p[0]*self.zoomFactor, p[1]) for p in line] for line in self.originWave[1]]]
+            def ScaleZoomWave(self, x1, x2):
+                #if 0 < len(self.originWave):
+                idx1 = self.SearchFullIndex(x1 - WF_LEFT_MARGIN, 0)
+                idx2 = self.SearchFullIndex(x2 - WF_LEFT_MARGIN, 0)
+
+                #print(idx1,idx2)
+                #print(len(self.originWave[1][0]))
+                offset = self.originWave[2][0][idx1][0]
+                scale = self.zoomScale*self.mainScale
+                self.zoomWaveform = [self.originWave[0]*scale]
+                lsts = []
+                for y, line in enumerate(self.originWave[1]):
+                    zipidx1 = self.SearchZipIndex(x1 - WF_LEFT_MARGIN, y, -1)
+                    zipidx2 = self.SearchZipIndex(x2 - WF_LEFT_MARGIN, y, 0)
+                    lst = []
+                    for p in line:
+                        if line[zipidx1][0] <= p[0] <= line[zipidx2][0]:
+                            if p[0] < offset:
+                                lst.append([0, p[1]])
+                            else:
+                                lst.append([int((p[0]-offset)*scale), p[1]])
+                    lsts.append(lst)
+                    #print lst
+                self.zoomWaveform.append(lsts)
+
+#                self.zoomWaveform.append([[(int((p[0]-line[idx1][0])*scale), p[1]) for p in line if 
+#                    line[idx1][0] <= p[0] <= line[idx2][0]] for line in self.originWave[2]])
+
+#                for line in self.originWave[2]:
+#                    print(line[idx1][0])
+
+                x_offset = self.horizontalScrollBar().value()
+
+                self.paintZoomWaveform = []
+                self.paintZoomWaveform.append(self.zoomWaveform[0])
+                self.paintZoomWaveform.append([])
+                for i, w in enumerate(self.zoomWaveform[1]):
+                    y_offset = (WF_H_OFFSET * i + WF_TOP_MARGIN + 32 * WF_H_OFFSET + ZOOMWAVE_OFFSET)
+                    w_tmp = [[w[0][0] + WF_LEFT_MARGIN + x_offset, w[0][1] * WF_H + y_offset],]
+                    for p0, p2 in zip(w, w[1:]):
+                        p0 = [p0[0] + WF_LEFT_MARGIN + x_offset, p0[1] * WF_H + y_offset]
+                        p2 = [p2[0] + WF_LEFT_MARGIN + x_offset, p2[1] * WF_H + y_offset]
+                        p1 = [p2[0], p0[1]]
+                        w_tmp.append(p1)
+                        w_tmp.append(p2)
+                    #print w_tmp
+                    self.paintZoomWaveform[1].append(w_tmp)
+
+            def DrawZoomWave(self):
+                if 0 < len(self.zoomWaveItems):
+                    for item in self.zoomWaveItems:
+                        self.scene().removeItem(item)
+
+                self.zoomWaveItems = []
+                if 0 < len(self.paintZoomWaveform):
+                    for wave in self.paintZoomWaveform[1]:
+                        self.zoomWaveItems.append(self.AddLines(wave))
+
+            def ScaleMainWave(self):
+                self.waveform = [self.originWave[0]*self.mainScale]
+                # scale the zipped wave
+                self.waveform.append([[(int(p[0]*self.mainScale), p[1]) for p in line] for line in self.originWave[1]])
+                # scale the full wave
+                self.waveform.append([[(int(p[0]*self.mainScale), p[1]) for p in line] for line in self.originWave[2]])
+
                 self.paintWaveform = []
                 self.paintWaveform.append(self.waveform[0])
                 self.paintWaveform.append([])
@@ -515,12 +583,12 @@ class MainWindow(QtGui.QWidget):
                     for p0, p2 in zip(w, w[1:]):
                         p0 = [p0[0] + WF_LEFT_MARGIN, p0[1] * WF_H + y_offset]
                         p2 = [p2[0] + WF_LEFT_MARGIN, p2[1] * WF_H + y_offset]
-                        p1 = (p2[0], p0[1])
+                        p1 = [p2[0], p0[1]]
                         w_tmp.append(p1)
                         w_tmp.append(p2)
                     self.paintWaveform[1].append(w_tmp)
 
-                self.scene().setSceneRect(0,0,self.waveform[0] + 2 * WF_LEFT_MARGIN, 32 * WF_H_OFFSET + 2 * WF_TOP_MARGIN)
+                self.scene().setSceneRect(0,0,self.waveform[0] + 2 * WF_LEFT_MARGIN, 64 * WF_H_OFFSET + 2 * WF_TOP_MARGIN)
 
             def DrawWave(self):
                 if 0 < len(self.waveItems):
@@ -538,11 +606,16 @@ class MainWindow(QtGui.QWidget):
             def MoveGuideLine(self, item, x):
                 item.setLine(x, MEASURE_LINE_TOP, x, MEASURE_LINE_BTM)
 
-            def AddZoomGuideRect(self, x, w):
-                return self.scene().addRect(x - w/2, MEASURE_LINE_TOP, w, MEASURE_LINE_H, QtGui.QPen(Qt.DashLine))
-
-            def MoveZoomGuideRect(self, item, x, w):
-                item.setRect(x- w/2, MEASURE_LINE_TOP, w, MEASURE_LINE_H)
+            def setZoomGuideRect(self, x, w):
+                x1 = x - w/2
+                x2 = x1 + w
+                if self.guideRectItem is None:
+                    self.guideRectItem = self.scene().addRect(x1, MEASURE_LINE_TOP, w, MEASURE_LINE_H, QtGui.QPen(Qt.DashLine))
+                else:
+                    self.guideRectItem.setRect(x1, MEASURE_LINE_TOP, w, MEASURE_LINE_H)
+                
+                self.ScaleZoomWave(x1, x2)
+                self.DrawZoomWave()
 
             def AddLines(self, points):
                 polygon=QtGui.QPolygon(len(points))
@@ -554,8 +627,8 @@ class MainWindow(QtGui.QWidget):
                 #pathItem.setToolTip("123")
                 return pathItem
 
-            def AddArrow(self, coord):
-                x1,y1,x2,y2 = coord[0],coord[1],coord[2],coord[3]
+            def AddArrow(self, x1, y1, x2, y2):
+                #x1,y1,x2,y2 = coord[0],coord[1],coord[2],coord[3]
                 polygon=QtGui.QPolygon(8)
 #                polygon.setPoint(0, x1+2, y1-2)
 #                polygon.setPoint(1, x1, y1)
@@ -565,13 +638,24 @@ class MainWindow(QtGui.QWidget):
 #                polygon.setPoint(5, x2-2, y2-2)
 #                polygon.setPoint(6, x2, y2)
 #                polygon.setPoint(7, x2-2, y2+2)
-                polygon.setPoints(x1+2, y1-2, x1, y1, x1+2, y1+2, x1, y1, x2, y2, x2-2, y2-2, x2, y2, x2-2, y2+2)
-                #for i in range(8):
-                #    print(polygon.point(i))
+                polygon.setPoints(x1+2, y1-2, x1, y1, x1+2, y1+2, x1, y1, 
+                    x2, y2, x2-2, y2-2, x2, y2, x2-2, y2+2)
                 path=QtGui.QPainterPath()
                 path.addPolygon(QtGui.QPolygonF(polygon))
                 pathItem = self.scene().addPath(path)
                 return pathItem
+
+            def mousePressEvent(self, evt):
+                if evt.button() == Qt.LeftButton:
+                    self.m_drag=True
+                    pos = self.mapToScene(evt.pos().x(),evt.pos().y())
+                    x = int(pos.x())
+                    self.setZoomGuideRect(x, 40)
+                #evt.accept()
+
+            def mouseReleaseEvent(self, evt):
+                self.m_drag=False
+                #evt.accept()
 
             def mouseMoveEvent(self, evt):
                 pos = self.mapToScene(evt.pos().x(),evt.pos().y())
@@ -581,55 +665,97 @@ class MainWindow(QtGui.QWidget):
                 #self.movingT_x = x
 
                 if 0 < len(self.waveform):
-                    line = (y - WF_TOP_MARGIN) / WF_H_OFFSET
+                    if WF_TOP_MARGIN < y < WF_TOP_MARGIN + WF_H_OFFSET * 32:
+                        line = (y - WF_TOP_MARGIN) / WF_H_OFFSET
+                    elif WF_TOP_MARGIN + WF_H_OFFSET * 32 + ZOOMWAVE_OFFSET <= y < WF_TOP_MARGIN + WF_H_OFFSET * 64 + ZOOMWAVE_OFFSET:
+                        line = (y - WF_TOP_MARGIN - ZOOMWAVE_OFFSET) / WF_H_OFFSET
+                    else:
+                        line = -1
 
-                    if -1 < line < len(self.waveform[1]):
-                        idx = self.SearchIndex(x - WF_LEFT_MARGIN, line)
-                        if idx < len(self.waveform[1][line]):
-                            if 0 < idx:
-                                arrowNew = [0,0,0,0]
-                                arrowNew[0] = self.waveform[1][line][idx-1][0] + 2 + WF_LEFT_MARGIN
-                                arrowNew[2] = self.waveform[1][line][idx][0] - 2 + WF_LEFT_MARGIN
-                                arrowNew[1] = arrowNew[3] = line * WF_H_OFFSET + WF_H / 2 + WF_TOP_MARGIN
-                                if self.arrow != arrowNew:
-                                    #print(line,idx)
-                                    if self.arrowItem is not None:
-                                        self.scene().removeItem(self.arrowItem)
-                                    self.arrowItem = self.AddArrow(arrowNew)
-                                    self.arrow = arrowNew[:]
-                                    #print(arrowNew)
-                                    str1 = 'T1:      %d' % self.originWave[1][line][idx-1][0]
-                                    str2 = 'T2:      %d' % self.originWave[1][line][idx][0]
-                                    str3 = '|T1-T2|= %d' % (self.originWave[1][line][idx][0] - self.originWave[1][line][idx-1][0])
-                                    #str4 = self.signalLabel[line]
-                                    #self.frame.lblInfo1.SetLabel(str1)
-                                    #self.frame.lblInfo2.SetLabel(str2)
-                                    #self.frame.lblInfo3.SetLabel(str3)
-                                    #self.frame.lblInfo4.SetLabel(str4)
-                                    #self.statusbar.SetStatusText(str4, 1)
-                                    #self.statusbar.SetStatusText(str3, 2)
+                    arrowNew = self.arrow[:]
+                    if 0 <= line < 32:
+                        idx = self.SearchZipIndex(x - WF_LEFT_MARGIN, line)
+                        if 0 < idx < len(self.waveform[1][line]):
+                            arrowNew[0] = self.waveform[1][line][idx-1][0] + 2 + WF_LEFT_MARGIN
+                            arrowNew[2] = self.waveform[1][line][idx][0] - 2 + WF_LEFT_MARGIN
+                            arrowNew[1] = arrowNew[3] = line * WF_H_OFFSET + WF_H / 2 + WF_TOP_MARGIN
+                    elif 32 <= line < 64:
+                        if 0 < len(self.zoomWaveform):
+                            idx = self.SearchZoomZipIndex(x - WF_LEFT_MARGIN, line-32)
+                            if 0 < idx < len(self.zoomWaveform[1][line-32]):
+                                arrowNew[0] = self.zoomWaveform[1][line-32][idx-1][0] + 2 + WF_LEFT_MARGIN
+                                arrowNew[2] = self.zoomWaveform[1][line-32][idx][0] - 2 + WF_LEFT_MARGIN
+                                arrowNew[1] = arrowNew[3] = line * WF_H_OFFSET + WF_H / 2 + WF_TOP_MARGIN + ZOOMWAVE_OFFSET
 
-                if self.guideItem is None:
-                    self.guideItem = self.AddGuideLine(x)
-                else:
-                    self.MoveGuideLine(self.guideItem, x)
+                    if self.arrow != arrowNew:
+                        #print(line,idx)
+                        if self.arrowItem is not None:
+                            self.scene().removeItem(self.arrowItem)
+                        self.arrowItem = self.AddArrow(*arrowNew)
+                        self.arrow = arrowNew[:]
+                        #print(arrowNew)
+                        if 0 <= line < 32:
+                            str1 = 'T1:      %d' % self.originWave[1][line][idx-1][0]
+                            str2 = 'T2:      %d' % self.originWave[1][line][idx][0]
+                            str3 = '|T1-T2|= %d' % (self.originWave[1][line][idx][0] 
+                                - self.originWave[1][line][idx-1][0])
+                        elif 32 <= line < 64:
+                            str1 = 'T1:      %d' % self.zoomWaveform[1][line-32][idx-1][0]
+                            str2 = 'T2:      %d' % self.zoomWaveform[1][line-32][idx][0]
+                            str3 = '|T1-T2|= %d' % (self.zoomWaveform[1][line-32][idx][0] 
+                                - self.zoomWaveform[1][line-32][idx-1][0])
+                        #print("%s\t%s\t%s" % (str1,str2,str3))
+                        #str4 = self.signalLabel[line]
+                        #self.frame.lblInfo1.SetLabel(str1)
+                        #self.frame.lblInfo2.SetLabel(str2)
+                        #self.frame.lblInfo3.SetLabel(str3)
+                        #self.frame.lblInfo4.SetLabel(str4)
+                        #self.statusbar.SetStatusText(str4, 1)
+                        #self.statusbar.SetStatusText(str3, 2)
+
+                    if self.guideItem is None:
+                        self.guideItem = self.AddGuideLine(x)
+                    else:
+                        self.MoveGuideLine(self.guideItem, x)
+                    
+                    if evt.buttons() and Qt.LeftButton and self.m_drag:
+                        self.setZoomGuideRect(x, 40)
                 
-                if self.guideRectItem is None:
-                    self.guideRectItem = self.AddZoomGuideRect(x, 200)
-                else:
-                    self.MoveZoomGuideRect(self.guideRectItem, x, 200)
-                
-                evt.accept()
+                #evt.accept()
 
-            def SearchIndex(self, px, py):
+            def SearchFullIndex(self, px, py):
+                l_x = [p[0] for p in self.waveform[2][py]]
+                idx = bisect_left(l_x, px)         # Binary search(bisection)
+                length = len(self.waveform[2][py])
+                if length <= idx:
+                    idx = length - 1
+                return idx
+
+            def SearchZipIndex(self, px, py, offset=0):
                 l_x = [p[0] for p in self.waveform[1][py]]
-                return bisect_left(l_x, px)
+                idx = bisect_left(l_x, px)         # Binary search(bisection)
+                idx += offset
+                length = len(self.waveform[1][py])
+                if length <= idx:
+                    idx = length - 1
+                elif idx < 0:
+                    idx = 0
+                return idx
+
+            def SearchZoomZipIndex(self, px, py):
+                l_x = [p[0] for p in self.zoomWaveform[1][py]]
+                idx = bisect_left(l_x, px)         # Binary search(bisection)
+                length = len(self.zoomWaveform[1][py])
+                if length <= idx:
+                    idx = length - 1
+                return idx
+
 
         self.view=View(scene, wdgt_page3)
-        self.view.setGeometry(25,10,950,32 * WF_H_OFFSET + 2 * WF_TOP_MARGIN + 20)
+        self.view.setGeometry(25,10,950,64 * WF_H_OFFSET + 2 * WF_TOP_MARGIN + 20)
         #view.scale(0.0001,1)
         #self.view.setStyleSheet("QGraphicsView{margin:0px;}")
-        qtab_main.setGeometry(0,34,1000,650)
+        qtab_main.setGeometry(0,34,1000,680)
         
         qtab_main.addTab(wdgt_page1, "Data Watch")
         qtab_main.addTab(wdgt_page2, "Setting")
@@ -653,9 +779,9 @@ class MainWindow(QtGui.QWidget):
         # init data
         self.lists = []
 
-        self.LoadLogData(r"D:\sunyt\92_WorkSpace\SuperDbg\dummy2.txt")
+        #self.LoadLogData(r"D:\sunyt\92_WorkSpace\SuperDbg\dummy2.txt")
+        self.LoadLogData(u"D:\sunyt\92_WorkSpace\SuperDbg\A3 color 600dpi 隱ｭ蜿門燕譛ｪ驕寧AM iolog 1.txt")
         self.view.Update()
-        #self.LoadLogData(r"D:\sunyt\03_Log\process log.txt")
         #scene.setSceneRect(0,0,400,520)
         #scene.addLine(0,0,100,100)
         #self.SceneAddLines(scene, [[0,50],[100,50],[100,10],[200,10]])
@@ -731,7 +857,8 @@ class MainWindow(QtGui.QWidget):
         QtGui.QToolTip.showText(self.mapToGlobal(self.qbtn_cpy3.pos())+QtCore.QPoint(25,41), "copyed")
         
     def btnClicked_filebrowser(self):
-        map_filename = QtGui.QFileDialog.getOpenFileName(self, u"Select file", QtCore.QDir.currentPath(), "Map (*.map);;All files (*.*)")
+        map_filename = QtGui.QFileDialog.getOpenFileName(self, u"Select file", 
+            QtCore.QDir.currentPath(), "Map (*.map);;All files (*.*)")
         if map_filename:
             self.qedt_filepath.setText(map_filename)
         
@@ -762,7 +889,6 @@ class MainWindow(QtGui.QWidget):
         self.qedt_vari2.setCompleter(qcmp_vari)
         self.qedt_vari3.setCompleter(qcmp_vari)
         
-        #QtGui.QToolTip.showText(self.qbtn_fileload.parentWidget().mapToGlobal(self.qbtn_fileload.pos())+QtCore.QPoint(-10,-44), "Loaded")
         QtGui.QToolTip.showText(self.mapToGlobal(self.qbtn_fileload.pos())+QtCore.QPoint(-10,-44), "Loaded")
 
     def btnClicked_minimize(self):
