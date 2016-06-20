@@ -33,7 +33,7 @@ import sys, os
 import ntpath
 
 #pyqt imports
-from PyQt4 import QtCore,QtGui
+from PyQt4 import QtCore,QtGui,QtSvg
 from PyQt4.QtCore import Qt
 
 #converter imports
@@ -50,6 +50,28 @@ import appInfo
 import re
 re_findVariables = re.compile('(?P<label>\w+)\s+0x(?P<addr>[0-9a-fA-F]{8})' \
 '\s+Data\s+(?P<len>[0-9]+)\s+(?P<section>[0-9a-zA-Z\(\)\._]+)')
+
+SVG_CPY2CLIPBOARD="""<svg version="1.0" xmlns="http://www.w3.org/2000/svg" 
+width="20" height="20" viewBox="0 0 64 64" preserveAspectRatio="xMidYMid meet">
+<g transform="translate(0,64) scale(0.1,-0.10)" fill="#000000" stroke="none">
+<path d="M237 598 c-9 -7 -21 -25 -26 -40 -10 -27 -13 -28 -81 -28 -64 0 -71
+-2 -78 -22 -11 -33 -7 -467 5 -479 6 -6 97 -8 234 -7 l224 3 3 53 c3 47 1 53
+-15 50 -13 -2 -18 -13 -18 -38 l0 -35 -200 0 -200 0 0 180 0 180 200 0 200 0
+1 -45 c2 -67 3 -70 19 -70 13 0 15 17 13 113 l-3 112 -73 3 c-58 2 -74 6 -79
+20 -19 54 -85 80 -126 50z m91 -68 c9 -25 16 -30 42 -30 39 0 70 -16 70 -35 0
+-13 -26 -15 -155 -15 -129 0 -155 2 -155 15 0 19 31 35 70 35 24 0 33 6 41 28
+22 59 67 61 87 2z"/>
+<path d="M130 355 c0 -12 17 -15 95 -15 78 0 95 3 95 15 0 12 -17 15 -95 15
+-78 0 -95 -3 -95 -15z"/>
+<path d="M342 268 l-52 -54 54 -53 55 -54 3 34 3 34 98 3 97 3 0 34 0 34 -97
+3 -98 3 -5 33 -5 33 -53 -53z"/>
+<path d="M130 275 c0 -11 12 -15 45 -15 33 0 45 4 45 15 0 11 -12 15 -45 15
+-33 0 -45 -4 -45 -15z"/>
+<path d="M130 195 c0 -11 12 -15 45 -15 33 0 45 4 45 15 0 11 -12 15 -45 15
+-33 0 -45 -4 -45 -15z"/>
+<path d="M127 123 c-18 -17 0 -23 73 -23 64 0 80 3 80 15 0 12 -15 15 -73 15
+-41 0 -77 -3 -80 -7z"/>
+</g></svg>"""
 
 #try:
 #    _fromUtf8 = QtCore.QString.fromUtf8
@@ -125,6 +147,25 @@ class EditDrop(QtGui.QLineEdit):
             #print url
             self.setText(url)        # assign first url to editline
 
+class SVGPushButton(QtGui.QPushButton):
+    def __init__(self, *args, **kwargs):
+        super(SVGPushButton, self).__init__(*args, **kwargs)
+        
+        #self.setLayout(QtGui.QHBoxLayout())
+        #self.layout().setSizeConstraint(QtGui.QLayout.SetMinAndMaxSize)
+
+    def addPixmap(self, pixmap):
+        self.pix=pixmap
+
+    def paintEvent(self, evt):
+        super(SVGPushButton, self).paintEvent(evt)
+        painter = QtGui.QPainter(self)
+        painter.drawPixmap(1, 1, 20, 20, self.pix)
+
+    def enterEvent(self, evt):
+        super(SVGPushButton, self).enterEvent(evt)
+        QtGui.QToolTip.showText(self.parent().mapToGlobal(self.pos())+QtCore.QPoint(25,-21), "copy to clipboard")
+        
 #class TabCtrl(QtGui.QWidget):
 #    def __init__(self, *args, **kwargs):
 #        super(TabCtrl, self).__init__(*args, **kwargs)
@@ -140,10 +181,11 @@ class MainWindow(QtGui.QWidget):
         self.m_DragPosition=self.pos()
         self.m_drag = False
         
-        self.resize(552,245)
+        self.resize(552,245+34)
         self.setWindowFlags(Qt.FramelessWindowHint)
         self.setMouseTracking(True)
-        self.setStyleSheet("QWidget{background-color:#99d9ea;}")
+        #self.setStyleSheet("QWidget{background-color:#99d9ea;}")
+        #self.setStyleSheet("QWidget{background-color:#99d9ea;}")
         
         self.setWindowTitle(appInfo.title)
         
@@ -156,11 +198,15 @@ class MainWindow(QtGui.QWidget):
         pix32 = QtGui.QPixmap()
         pix32.loadFromData(zf.read("media/32.png"), "png")
         
-        self.setWindowIcon(QtGui.QIcon(pix16))
-            
-        # add widgets
+#        pixcpy = QtGui.QPixmap()
+#        pixcpy.loadFromData(zf.read("media/copy2clipboard.png"), "png")
+        ico_pixcpy = QtGui.QIcon(self.scriptPath + "/media/copy2clipboard.svg")
+        #pixcpy.loadFromData(zf.read("media/copy2clipboard.png"), "png")
         
 
+        self.setWindowIcon(QtGui.QIcon(pix16))
+        
+        # add widgets
         qlbl_title = QtGui.QLabel(u"%s %s" % (appInfo.title, appInfo.version), self)
         qlbl_title.setGeometry(0,0,552,34)
         qlbl_title.setStyleSheet("QLabel{background-color:#30a7b8;"
@@ -173,7 +219,8 @@ class MainWindow(QtGui.QWidget):
         
         qlbl_ico = QtGui.QLabel(self)
         qlbl_ico.setGeometry(8,1,32,32)
-        qlbl_ico.setPixmap(pix32)
+        #qlbl_ico.setPixmap(pix32)
+        #qlbl_ico.setWidget(qsvg)
         qlbl_ico.setStyleSheet("background-color:#30a7b8;")
         
         self.qbtn_minimize=BtnMinimize(self)
@@ -198,6 +245,28 @@ class MainWindow(QtGui.QWidget):
         
         wdgt_page1=QtGui.QWidget(self)
         
+        self.qbtn_cpy1=SVGPushButton("", wdgt_page1)
+        self.qbtn_cpy1.addPixmap(ico_pixcpy.pixmap((QtCore.QSize(20,20))))
+        self.qbtn_cpy1.setGeometry(250+85,135-34,22,22)
+        #qbtn_cpy1.setFlat(True)
+        self.qbtn_cpy1.setStyleSheet("QPushButton{border:none;}"
+                                "QPushButton:hover{background-color:#51c0d1;}"
+                                "QPushButton:pressed{background-color:#268392;}")
+
+        self.qbtn_cpy2=SVGPushButton("", wdgt_page1)
+        self.qbtn_cpy2.addPixmap(ico_pixcpy.pixmap((QtCore.QSize(20,20))))
+        self.qbtn_cpy2.setGeometry(250+85,170-34,22,22)
+        self.qbtn_cpy2.setStyleSheet("QPushButton{border:none;}"
+                                "QPushButton:hover{background-color:#51c0d1;}"
+                                "QPushButton:pressed{background-color:#268392;}")
+
+        self.qbtn_cpy3=SVGPushButton("", wdgt_page1)
+        self.qbtn_cpy3.addPixmap(ico_pixcpy.pixmap((QtCore.QSize(20,20))))
+        self.qbtn_cpy3.setGeometry(250+85,205-34,22,22)
+        self.qbtn_cpy3.setStyleSheet("QPushButton{border:none;}"
+                                "QPushButton:hover{background-color:#51c0d1;}"
+                                "QPushButton:pressed{background-color:#268392;}")
+        
         qlbl_0 = QtGui.QLabel(u"Mapping file", wdgt_page1)
         qlbl_0.setGeometry(25,45-34,90,20)
         qlbl_0.setStyleSheet("QLabel{border:none;color:#2f2f2f;font-size:13px;font-family:Microsoft YaHei;}")
@@ -206,7 +275,7 @@ class MainWindow(QtGui.QWidget):
         qlbl_1 = QtGui.QLabel(u"Variable", wdgt_page1)
         qlbl_1.setGeometry(25,110-34,60,20)
         qlbl_1.setStyleSheet("QLabel{border:none;color:#2f2f2f;font-size:13px;font-family:Microsoft YaHei;}")
-                
+        
         qlbl_2 = QtGui.QLabel(u"Address", wdgt_page1)
         qlbl_2.setGeometry(250,110-34,60,20)
         qlbl_2.setStyleSheet("QLabel{border:none;color:#2f2f2f;font-size:13px;font-family:Microsoft YaHei;}")
@@ -275,6 +344,15 @@ class MainWindow(QtGui.QWidget):
         self.qedt_addr3.setGeometry(250,205-34,85,22)
         self.qedt_addr3.setStyleSheet("QLineEdit{background-color:#e4e4e4;border:none;color:#2f2f2f;font-size:12px;font-family:Meiryo UI;}QLineEdit:hover{background-color:#e4e4e4;}")
         
+#        qScrlArea=QtGui.QScrollArea(wdgt_page1)
+#        qScrlArea.setGeometry(250+85,135-34,22,22)
+#        #qScrlArea.setGeometry(10,0,64,64)
+#        qsvg=QtSvg.QSvgWidget()
+#        #qsvg.setGeometry(0,0,20,20)
+#        ba_svg=QtCore.QByteArray(SVG_CPY2CLIPBOARD)
+#        qsvg.renderer().load(ba_svg)
+#        #qsvg.load(ba_svg)
+#        qScrlArea.setWidget(qsvg)
         
         self.qedt_byte1 = QtGui.QLineEdit("", wdgt_page1)
         self.qedt_byte1.setGeometry(370,135-34,37,22)
@@ -306,24 +384,77 @@ class MainWindow(QtGui.QWidget):
         self.qedt_sect3.setStyleSheet("QLineEdit{background-color:#e4e4e4;border:none;color:#2f2f2f;font-size:12px;font-family:Meiryo UI;}QLineEdit:hover{background-color:#e4e4e4;}")
         
         qtab_main=QtGui.QTabWidget(self)
-        qtab_main.setGeometry(0,34,552,210)
-        qtab_main.setStyleSheet("QTabWidget:pane{border:none;"
-                                                        #"color:#ffffff;"
-                                                        #"font-size:12px;"
-                                                        "}"
-                                        #"QTabWidget:tab-bar{;}"
-                                        "QTabBar:tab{border:none;"
-                                                    "font:bold;"
-                                                    "font-size:16px;"
-                                                    "font-family:Georgia;"
-                                                    "color:#ffffff;"
-                                                    "height:28px;width:184px;"
-                                                    "background-color:#30a7b8;}"
-                                        "QTabBar:tab:selected{background-color:#30a7b8;alignment:center;}"
-                                        "QTabBar:tab:!selected{background-color:#99d9ea;alignment:center;}"
-                                        )
+        qtab_main.setGeometry(0,34,552,210+34)
+        qtab_main.setStyleSheet(
+                                #"QWidget{background-color:#99d9ea;}"
+                                "QTabWidget:pane{"
+                                                #"background-color:#0f0f00;"
+                                                #"font-size:12px;"
+                                                "background-color:#99d9ea;"
+                                                "border:none;"
+                                                "}"
+                                "QTabBar:tab{"
+                                            #"font:bold;"
+                                            "font-size:13px;"
+                                            "font-family:Microsoft YaHei;"
+                                            "color:#ffffff;"
+                                            "height:28px;width:184px;"
+                                            #"border-width:2px;"
+                                            "}"
+                                "QTabBar:tab:selected{background-color:#30a7b8;}"
+                                "QTabBar:tab:!selected{background-color:#99d9ea;}"
+                                "QTabBar:tab:!selected:hover{background-color:#50c0dc;}"
+                                #"QTabBar:tab:hover{top: 2px;}"
+                               )
         
         wdgt_page2=QtGui.QWidget(self)
+        qlbl_2_0=QtGui.QLabel(u"Port", wdgt_page2)
+        qlbl_2_0.setGeometry(25,45-34,90,20)
+        qlbl_2_0.setStyleSheet("QLabel{border:none;color:#2f2f2f;font-size:13px;font-family:Microsoft YaHei;}")
+        
+        qlbl_2_1=QtGui.QLabel(u"Baud Rate", wdgt_page2)
+        qlbl_2_1.setGeometry(25,75-34,90,20)
+        qlbl_2_1.setStyleSheet("QLabel{border:none;color:#2f2f2f;font-size:13px;font-family:Microsoft YaHei;}")
+        
+        qlbl_2_2=QtGui.QLabel(u"Data Bits", wdgt_page2)
+        qlbl_2_2.setGeometry(25,105-34,90,20)
+        qlbl_2_2.setStyleSheet("QLabel{border:none;color:#2f2f2f;font-size:13px;font-family:Microsoft YaHei;}")
+        
+        qlbl_2_3=QtGui.QLabel(u"Parity", wdgt_page2)
+        qlbl_2_3.setGeometry(25,135-34,90,20)
+        qlbl_2_3.setStyleSheet("QLabel{border:none;color:#2f2f2f;font-size:13px;font-family:Microsoft YaHei;}")
+        
+        qlbl_2_4=QtGui.QLabel(u"Stop Bits", wdgt_page2)
+        qlbl_2_4.setGeometry(25,165-34,90,20)
+        qlbl_2_4.setStyleSheet("QLabel{border:none;color:#2f2f2f;font-size:13px;font-family:Microsoft YaHei;}")
+        
+        qcmb_2_0=QtGui.QComboBox(wdgt_page2)
+        qcmb_2_0.setGeometry(115,45-34,90,20)
+        qcmb_2_0.setStyleSheet("QComboBox{color:#2f2f2f;font-size:12px;font-family:Microsoft YaHei;}")
+        qcmb_2_0.addItem("COM1")
+
+        qcmb_2_1=QtGui.QComboBox(wdgt_page2)
+        qcmb_2_1.setGeometry(115,75-34,90,20)
+        qcmb_2_1.setStyleSheet("QComboBox{color:#2f2f2f;font-size:12px;font-family:Microsoft YaHei;}")
+
+        qcmb_2_2=QtGui.QComboBox(wdgt_page2)
+        qcmb_2_2.setGeometry(115,105-34,90,20)
+        qcmb_2_2.setStyleSheet("QComboBox{color:#2f2f2f;font-size:12px;font-family:Microsoft YaHei;}")
+
+        qcmb_2_3=QtGui.QComboBox(wdgt_page2)
+        qcmb_2_3.setGeometry(115,135-34,90,20)
+        qcmb_2_3.setStyleSheet("QComboBox{color:#2f2f2f;font-size:12px;font-family:Microsoft YaHei;}")
+
+        qcmb_2_4=QtGui.QComboBox(wdgt_page2)
+        qcmb_2_4.setGeometry(115,165-34,90,20)
+        qcmb_2_4.setStyleSheet("QComboBox{color:#2f2f2f;font-size:12px;font-family:Microsoft YaHei;}")
+
+        qbtn_EnumPorts=QtGui.QPushButton(u"EnumPorts", wdgt_page2)
+        qbtn_EnumPorts.setGeometry(225,45-35,110,30)
+
+        qbtn_OpenPort=QtGui.QPushButton(u"Open", wdgt_page2)
+        qbtn_OpenPort.setGeometry(225,85-35,110,30)
+
         wdgt_page3=QtGui.QWidget(self)
 
         qtab_main.addTab(wdgt_page1, "Data Watch")
@@ -338,6 +469,10 @@ class MainWindow(QtGui.QWidget):
         self.qedt_vari1.textChanged.connect(self.edtTextChanged_vari1)
         self.qedt_vari2.textChanged.connect(self.edtTextChanged_vari2)
         self.qedt_vari3.textChanged.connect(self.edtTextChanged_vari3)
+        self.qbtn_cpy1.clicked.connect(self.btnClicked_cpy1)
+        self.qbtn_cpy2.clicked.connect(self.btnClicked_cpy2)
+        self.qbtn_cpy3.clicked.connect(self.btnClicked_cpy3)
+        qtab_main.currentChanged.connect(self.tabChanged_main)
         
         # init data
         self.lists = []
@@ -358,6 +493,11 @@ class MainWindow(QtGui.QWidget):
         self.m_drag=False
     
     # event handle method
+    def tabChanged_main(self, idx):
+        pass
+#        if idx == 2:
+#            self.resize(800,500)
+
     def edtTextChanged_vari1(self, vari):
         for l in self.lists:
             if l[0] == vari:
@@ -383,6 +523,18 @@ class MainWindow(QtGui.QWidget):
                 self.qedt_sect3.setText(l[3])
                 self.qedt_sect3.setCursorPosition(0)
                     
+    def btnClicked_cpy1(self):
+        QtGui.QApplication.clipboard().setText(self.qedt_addr1.text())
+        QtGui.QToolTip.showText(self.mapToGlobal(self.qbtn_cpy1.pos())+QtCore.QPoint(25,41), "copyed")
+
+    def btnClicked_cpy2(self):
+        QtGui.QApplication.clipboard().setText(self.qedt_addr2.text())
+        QtGui.QToolTip.showText(self.mapToGlobal(self.qbtn_cpy2.pos())+QtCore.QPoint(25,41), "copyed")
+
+    def btnClicked_cpy3(self):
+        QtGui.QApplication.clipboard().setText(self.qedt_addr3.text())
+        QtGui.QToolTip.showText(self.mapToGlobal(self.qbtn_cpy3.pos())+QtCore.QPoint(25,41), "copyed")
+        
     def btnClicked_filebrowser(self):
         map_filename = QtGui.QFileDialog.getOpenFileName(self, u"Select file", QtCore.QDir.currentPath(), "Map (*.map);;All files (*.*)")
         if map_filename:
@@ -469,3 +621,4 @@ if __name__=="__main__":
     mw=MainWindow(sys.argv)
     mw.show()
     sys.exit(mapp.exec_())
+
