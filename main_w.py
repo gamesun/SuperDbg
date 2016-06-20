@@ -41,37 +41,30 @@ from PyQt4.QtCore import Qt
 #from make_svg import MakeSvg
 #from make_xhtml import MakeXhtml
 #from make_text import MakeText
+import LogParser
 
 import zipfile
 import appInfo
 
 #from parentInfo import getParentInfo
 
+
+# waveform parameters
+WF_LEFT_MARGIN = 5
+WF_TOP_MARGIN = 18
+WF_H = 5
+WF_H_OFFSET = 9
+GRID_OFFSET = (WF_H_OFFSET - WF_H) / 2 + 4
+
+MEASURE_LINE_TOP = WF_TOP_MARGIN - 6
+MEASURE_LINE_BTM = WF_TOP_MARGIN + 32 * WF_H_OFFSET + 1
+MEASURE_LINE_H = MEASURE_LINE_BTM - MEASURE_LINE_TOP
+
 import re
 re_findVariables = re.compile('(?P<label>\w+)\s+0x(?P<addr>[0-9a-fA-F]{8})' \
 '\s+Data\s+(?P<len>[0-9]+)\s+(?P<section>[0-9a-zA-Z\(\)\._]+)')
 
-SVG_CPY2CLIPBOARD="""<svg version="1.0" xmlns="http://www.w3.org/2000/svg" 
-width="20" height="20" viewBox="0 0 64 64" preserveAspectRatio="xMidYMid meet">
-<g transform="translate(0,64) scale(0.1,-0.10)" fill="#000000" stroke="none">
-<path d="M237 598 c-9 -7 -21 -25 -26 -40 -10 -27 -13 -28 -81 -28 -64 0 -71
--2 -78 -22 -11 -33 -7 -467 5 -479 6 -6 97 -8 234 -7 l224 3 3 53 c3 47 1 53
--15 50 -13 -2 -18 -13 -18 -38 l0 -35 -200 0 -200 0 0 180 0 180 200 0 200 0
-1 -45 c2 -67 3 -70 19 -70 13 0 15 17 13 113 l-3 112 -73 3 c-58 2 -74 6 -79
-20 -19 54 -85 80 -126 50z m91 -68 c9 -25 16 -30 42 -30 39 0 70 -16 70 -35 0
--13 -26 -15 -155 -15 -129 0 -155 2 -155 15 0 19 31 35 70 35 24 0 33 6 41 28
-22 59 67 61 87 2z"/>
-<path d="M130 355 c0 -12 17 -15 95 -15 78 0 95 3 95 15 0 12 -17 15 -95 15
--78 0 -95 -3 -95 -15z"/>
-<path d="M342 268 l-52 -54 54 -53 55 -54 3 34 3 34 98 3 97 3 0 34 0 34 -97
-3 -98 3 -5 33 -5 33 -53 -53z"/>
-<path d="M130 275 c0 -11 12 -15 45 -15 33 0 45 4 45 15 0 11 -12 15 -45 15
--33 0 -45 -4 -45 -15z"/>
-<path d="M130 195 c0 -11 12 -15 45 -15 33 0 45 4 45 15 0 11 -12 15 -45 15
--33 0 -45 -4 -45 -15z"/>
-<path d="M127 123 c-18 -17 0 -23 73 -23 64 0 80 3 80 15 0 12 -15 15 -73 15
--41 0 -77 -3 -80 -7z"/>
-</g></svg>"""
+
 
 #try:
 #    _fromUtf8 = QtCore.QString.fromUtf8
@@ -181,7 +174,8 @@ class MainWindow(QtGui.QWidget):
         self.m_DragPosition=self.pos()
         self.m_drag = False
         
-        self.resize(552,245+34)
+#        self.resize(552,245+34)
+        self.resize(1000,620)
         self.setWindowFlags(Qt.FramelessWindowHint)
         self.setMouseTracking(True)
         #self.setStyleSheet("QWidget{background-color:#99d9ea;}")
@@ -456,10 +450,192 @@ class MainWindow(QtGui.QWidget):
         qbtn_OpenPort.setGeometry(225,85-35,110,30)
 
         wdgt_page3=QtGui.QWidget(self)
+        
+        #scene=QtGui.QGraphicsScene(10,10,200,200, wdgt_page3)
+        scene=QtGui.QGraphicsScene()
+        
+        from bisect import bisect_left
+        class View(QtGui.QGraphicsView):
+            def __init__(self, *args, **kwargs):
+                super(QtGui.QGraphicsView, self).__init__(*args, **kwargs)
+                self.setMouseTracking(True)
+                #self.setViewportMargins(5,5,5,5)
+                self.xScale = 1.0
+                        
+                self.paintWaveform = []
+                self.zoomFactor = 0.002
+                self.originWave = []
+                self.waveform = []
+                self.waveItems = []
+                self.arrow = None
+                self.arrowItem = None
+                self.guideItem = None
+                self.guideRectItem = None
+            
+            def Update(self):
+                self.TransformWave()
+                self.DrawWave()
+                if self.arrowItem is not None:
+                    self.scene().removeItem(self.arrowItem)
+                    self.arrowItem = None
+                #print(self.horizontalScrollBar().maximum(),self.horizontalScrollBar().singleStep())
+                #self.horizontalScrollBar().setMaximum(100000)
+                #self.horizontalScrollBar().setSingleStep(10)
+                #print(self.horizontalScrollBar().maximum(),self.horizontalScrollBar().singleStep())
+                if self.guideRectItem is not None:
+                    self.scene().removeItem(self.guideRectItem)
+                    self.guideRectItem = None
 
+                
+
+            def setWaveData(self, originWave):
+                self.originWave = originWave[:]
+
+            def wheelEvent(self, evt):
+                if 0 < evt.delta():
+                    #self.scale(2.0, 1.0)
+                    #print(self.transform().dx())
+                    self.zoomFactor = self.zoomFactor * 2
+                else:
+                    #self.scale(0.5, 1.0)
+                    #print(self.transform().dx())
+                    self.zoomFactor = self.zoomFactor / 2
+                self.Update()
+
+                evt.accept()
+
+            def TransformWave(self):
+                self.waveform = [self.originWave[0]*self.zoomFactor,[[(p[0]*self.zoomFactor, p[1]) for p in line] for line in self.originWave[1]]]
+                self.paintWaveform = []
+                self.paintWaveform.append(self.waveform[0])
+                self.paintWaveform.append([])
+                for i, w in enumerate(self.waveform[1]):
+                    y_offset = (WF_H_OFFSET * i + WF_TOP_MARGIN)
+                    w_tmp = [[w[0][0] + WF_LEFT_MARGIN, w[0][1] * WF_H + y_offset],]
+                    for p0, p2 in zip(w, w[1:]):
+                        p0 = [p0[0] + WF_LEFT_MARGIN, p0[1] * WF_H + y_offset]
+                        p2 = [p2[0] + WF_LEFT_MARGIN, p2[1] * WF_H + y_offset]
+                        p1 = (p2[0], p0[1])
+                        w_tmp.append(p1)
+                        w_tmp.append(p2)
+                    self.paintWaveform[1].append(w_tmp)
+
+                self.scene().setSceneRect(0,0,self.waveform[0] + 2 * WF_LEFT_MARGIN, 32 * WF_H_OFFSET + 2 * WF_TOP_MARGIN)
+
+            def DrawWave(self):
+                if 0 < len(self.waveItems):
+                    for item in self.waveItems:
+                        self.scene().removeItem(item)
+
+                self.waveItems = []
+                if 0 < len(self.paintWaveform):
+                    for wave in self.paintWaveform[1]:
+                        self.waveItems.append(self.AddLines(wave))
+
+            def AddGuideLine(self, x):
+                return self.scene().addLine(x, MEASURE_LINE_TOP, x, MEASURE_LINE_BTM, QtGui.QPen(Qt.DashLine))
+
+            def MoveGuideLine(self, item, x):
+                item.setLine(x, MEASURE_LINE_TOP, x, MEASURE_LINE_BTM)
+
+            def AddZoomGuideRect(self, x, w):
+                return self.scene().addRect(x - w/2, MEASURE_LINE_TOP, w, MEASURE_LINE_H, QtGui.QPen(Qt.DashLine))
+
+            def MoveZoomGuideRect(self, item, x, w):
+                item.setRect(x- w/2, MEASURE_LINE_TOP, w, MEASURE_LINE_H)
+
+            def AddLines(self, points):
+                polygon=QtGui.QPolygon(len(points))
+                for i, p in enumerate(points):
+                    polygon.setPoint(i, p[0], p[1])
+                path=QtGui.QPainterPath()
+                path.addPolygon(QtGui.QPolygonF(polygon))
+                pathItem = self.scene().addPath(path)
+                #pathItem.setToolTip("123")
+                return pathItem
+
+            def AddArrow(self, coord):
+                x1,y1,x2,y2 = coord[0],coord[1],coord[2],coord[3]
+                polygon=QtGui.QPolygon(8)
+#                polygon.setPoint(0, x1+2, y1-2)
+#                polygon.setPoint(1, x1, y1)
+#                polygon.setPoint(2, x1+2, y1+2)
+#                polygon.setPoint(3, x1, y1)
+#                polygon.setPoint(4, x2, y2)
+#                polygon.setPoint(5, x2-2, y2-2)
+#                polygon.setPoint(6, x2, y2)
+#                polygon.setPoint(7, x2-2, y2+2)
+                polygon.setPoints(x1+2, y1-2, x1, y1, x1+2, y1+2, x1, y1, x2, y2, x2-2, y2-2, x2, y2, x2-2, y2+2)
+                #for i in range(8):
+                #    print(polygon.point(i))
+                path=QtGui.QPainterPath()
+                path.addPolygon(QtGui.QPolygonF(polygon))
+                pathItem = self.scene().addPath(path)
+                return pathItem
+
+            def mouseMoveEvent(self, evt):
+                pos = self.mapToScene(evt.pos().x(),evt.pos().y())
+                x = int(pos.x())
+                y = int(pos.y())
+                
+                #self.movingT_x = x
+
+                if 0 < len(self.waveform):
+                    line = (y - WF_TOP_MARGIN) / WF_H_OFFSET
+
+                    if -1 < line < len(self.waveform[1]):
+                        idx = self.SearchIndex(x - WF_LEFT_MARGIN, line)
+                        if idx < len(self.waveform[1][line]):
+                            if 0 < idx:
+                                arrowNew = [0,0,0,0]
+                                arrowNew[0] = self.waveform[1][line][idx-1][0] + 2 + WF_LEFT_MARGIN
+                                arrowNew[2] = self.waveform[1][line][idx][0] - 2 + WF_LEFT_MARGIN
+                                arrowNew[1] = arrowNew[3] = line * WF_H_OFFSET + WF_H / 2 + WF_TOP_MARGIN
+                                if self.arrow != arrowNew:
+                                    #print(line,idx)
+                                    if self.arrowItem is not None:
+                                        self.scene().removeItem(self.arrowItem)
+                                    self.arrowItem = self.AddArrow(arrowNew)
+                                    self.arrow = arrowNew[:]
+                                    #print(arrowNew)
+                                    str1 = 'T1:      %d' % self.originWave[1][line][idx-1][0]
+                                    str2 = 'T2:      %d' % self.originWave[1][line][idx][0]
+                                    str3 = '|T1-T2|= %d' % (self.originWave[1][line][idx][0] - self.originWave[1][line][idx-1][0])
+                                    #str4 = self.signalLabel[line]
+                                    #self.frame.lblInfo1.SetLabel(str1)
+                                    #self.frame.lblInfo2.SetLabel(str2)
+                                    #self.frame.lblInfo3.SetLabel(str3)
+                                    #self.frame.lblInfo4.SetLabel(str4)
+                                    #self.statusbar.SetStatusText(str4, 1)
+                                    #self.statusbar.SetStatusText(str3, 2)
+
+                if self.guideItem is None:
+                    self.guideItem = self.AddGuideLine(x)
+                else:
+                    self.MoveGuideLine(self.guideItem, x)
+                
+                if self.guideRectItem is None:
+                    self.guideRectItem = self.AddZoomGuideRect(x, 200)
+                else:
+                    self.MoveZoomGuideRect(self.guideRectItem, x, 200)
+                
+                evt.accept()
+
+            def SearchIndex(self, px, py):
+                l_x = [p[0] for p in self.waveform[1][py]]
+                return bisect_left(l_x, px)
+
+        self.view=View(scene, wdgt_page3)
+        self.view.setGeometry(25,10,950,32 * WF_H_OFFSET + 2 * WF_TOP_MARGIN + 20)
+        #view.scale(0.0001,1)
+        #self.view.setStyleSheet("QGraphicsView{margin:0px;}")
+        qtab_main.setGeometry(0,34,1000,650)
+        
         qtab_main.addTab(wdgt_page1, "Data Watch")
         qtab_main.addTab(wdgt_page2, "Setting")
         qtab_main.addTab(wdgt_page3, "About")
+
+        qtab_main.setCurrentIndex(2)
 
         # bind event
         self.qbtn_filebrowser.clicked.connect(self.btnClicked_filebrowser)
@@ -476,6 +652,25 @@ class MainWindow(QtGui.QWidget):
         
         # init data
         self.lists = []
+
+        self.LoadLogData(r"D:\sunyt\92_WorkSpace\SuperDbg\dummy2.txt")
+        self.view.Update()
+        #self.LoadLogData(r"D:\sunyt\03_Log\process log.txt")
+        #scene.setSceneRect(0,0,400,520)
+        #scene.addLine(0,0,100,100)
+        #self.SceneAddLines(scene, [[0,50],[100,50],[100,10],[200,10]])
+    
+    def LoadLogData(self, filepath):
+        # read file
+        file = open(filepath, 'rU')
+
+        # read file's all lines to a list
+        lstData = file.readlines()
+
+        file.close()
+
+        self.originWave = LogParser.Parser(lstData)
+        self.view.setWaveData(self.originWave)
 
     # reload method to support window draging
     def mousePressEvent(self, event):
@@ -615,7 +810,7 @@ def file_write(path, string):
 def path_leaf(path):
     head, tail = ntpath.split(path)
     return tail or ntpath.basename(head)
-    
+
 if __name__=="__main__":
     mapp=QtGui.QApplication(sys.argv)
     mw=MainWindow(sys.argv)
